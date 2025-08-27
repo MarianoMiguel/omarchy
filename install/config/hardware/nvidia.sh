@@ -55,6 +55,7 @@ ensure_headers_match() {
     sudo pacman -S --needed --noconfirm "$khdr"
   fi
 
+<<<<<<< HEAD
   # best-effort sanity check
   local kv="$(pacman -Q "$kname" | awk '{print $2}')"
   local hv="$(pacman -Q "$khdr" | awk '{print $2}')"
@@ -62,6 +63,10 @@ ensure_headers_match() {
     log "Note: $kname ($kv) and $khdr ($hv) differ. A full system upgrade may be required for DKMS."
   fi
 }
+=======
+  # force package database refresh
+  sudo pacman -Syu
+>>>>>>> 5fec87d (Get rid of -Sy and -Syy (#1175))
 
 install_vaapi_wayland_bits() {
   sudo pacman -S --needed --noconfirm \
