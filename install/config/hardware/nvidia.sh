@@ -100,7 +100,7 @@ if [ -n "$(lspci | grep -i 'nvidia')" ]; then
     )
   fi
 
-  sudo pacman -S --needed --noconfirm "${PACKAGES_TO_INSTALL[@]}"
+  install_nvidia_with_fallback
 
   # Configure modprobe for early KMS
   echo "options nvidia_drm modeset=1" | sudo tee /etc/modprobe.d/nvidia.conf >/dev/null
