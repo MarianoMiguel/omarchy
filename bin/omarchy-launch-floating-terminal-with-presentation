@@ -1,6 +1,16 @@
 #!/bin/bash
 
 cmd="$*"
+term="${TERMINAL:-alacritty}"
 
-# Launch command in the configured terminal
-exec setsid uwsm app -- "${TERMINAL:-alacritty}" -e bash -c "omarchy-show-logo; $cmd; omarchy-show-done"
+# Set window title via OSC so Hyprland rules can match on title
+title_prefix='printf "\e]0;Omarchy\a"; '
+
+if command -v alacritty >/dev/null && [[ "$term" == "alacritty" ]]; then
+  exec setsid uwsm app -- alacritty --class=Omarchy --title=Omarchy -e bash -lc "${title_prefix}omarchy-show-logo; ${cmd}; omarchy-show-done"
+elif command -v kitty >/dev/null && [[ "$term" == "kitty" ]]; then
+  exec setsid uwsm app -- kitty --class=Omarchy -T Omarchy -e bash -lc "${title_prefix}omarchy-show-logo; ${cmd}; omarchy-show-done"
+else
+  # Generic terminal path (e.g., ghostty) — rely on OSC title
+  exec setsid uwsm app -- "$term" -e bash -lc "${title_prefix}omarchy-show-logo; ${cmd}; omarchy-show-done"
+fi

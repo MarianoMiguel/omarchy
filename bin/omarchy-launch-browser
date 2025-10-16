@@ -3,6 +3,12 @@
 default_browser=$(xdg-settings get default-web-browser)
 browser_exec=$(sed -n 's/^Exec=\([^ ]*\).*/\1/p' {~/.local,~/.nix-profile,/usr}/share/applications/$default_browser 2>/dev/null | head -1)
 
+# Fallback to Chromium if default browser desktop is not available
+if [[ -z "$browser_exec" ]]; then
+  default_browser=chromium.desktop
+  browser_exec=$(sed -n 's/^Exec=\([^ ]*\).*/\1/p' {~/.local,~/.nix-profile,/usr}/share/applications/$default_browser 2>/dev/null | head -1)
+fi
+
 if [[ $browser_exec =~ (firefox|zen|librewolf) ]]; then
   private_flag="--private-window"
 else

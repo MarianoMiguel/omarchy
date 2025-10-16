@@ -1,3 +1,12 @@
 #!/bin/bash
 
-exec setsid uwsm app -- "${TERMINAL:-alacritty}" -e bash -c 'fastfetch; read -n 1 -s'
+term="${TERMINAL:-alacritty}"
+title_prefix='printf "\e]0;About\a"; '
+
+if command -v alacritty >/dev/null && [[ "$term" == "alacritty" ]]; then
+  exec setsid uwsm app -- alacritty --class=About --title=About -e bash -lc "${title_prefix}fastfetch; read -n 1 -s"
+elif command -v kitty >/dev/null && [[ "$term" == "kitty" ]]; then
+  exec setsid uwsm app -- kitty --class=About -T About -e bash -lc "${title_prefix}fastfetch; read -n 1 -s"
+else
+  exec setsid uwsm app -- "$term" -e bash -lc "${title_prefix}fastfetch; read -n 1 -s"
+fi
