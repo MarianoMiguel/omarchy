@@ -1,0 +1,24 @@
+# Additional AUR packages to install by default
+# One package per line
+
+brave-bin
+visual-studio-code-bin
+heroic-games-launcher-bin
+onlyoffice-bin
+slack-desktop
+aether
+hyprmon-bin
+proton-pass
+winboat
+davinci-resolve
+blender-bin
+docker-desktop
+dbeaver
+input-remapper-git
+anydesk-bin
+tailscale
+aws-cli-bin
+vercel
+proton-vpn-gtk-app
+gemini-cli
+openai-codex-bin

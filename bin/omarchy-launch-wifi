@@ -1,3 +1,8 @@
 #!/bin/bash
 
-exec setsid uwsm app -- "$TERMINAL" --class=Impala -e impala "$@"
+# Prefer NetworkManager TUI when NM is active; otherwise use Impala (iwd)
+if systemctl is-active --quiet NetworkManager && command -v nmtui >/dev/null; then
+  exec setsid uwsm app -- "${TERMINAL:-alacritty}" -e nmtui
+else
+  exec setsid uwsm app -- "${TERMINAL:-alacritty}" --class=Impala -e impala "$@"
+fi

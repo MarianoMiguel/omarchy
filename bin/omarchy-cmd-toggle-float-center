@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Toggle floating, resize to 50% of focused monitor, and center
+hyprctl dispatch togglefloating
+
+read -r width height < <(hyprctl monitors -j | jq -r '.[] | select(.focused==true) | "\(.width) \(.height)"')
+
+if [[ -n "$width" && -n "$height" ]]; then
+  neww=$(( width * 3 / 4 ))
+  newh=$(( height * 3 / 4 ))
+  hyprctl dispatch resizeactive exact "$neww" "$newh"
+fi
+
+hyprctl dispatch centerwindow

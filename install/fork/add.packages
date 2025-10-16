@@ -1,0 +1,12 @@
+# Additional official packages to install by default (pacman repos)
+# One package per line
+
+ghostty
+steam
+krita
+nodejs
+npm
+nvm
+networkmanager
+network-manager-applet
+claude-code

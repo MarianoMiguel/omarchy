@@ -15,23 +15,23 @@ FallbackDNS=9.9.9.9 149.112.112.112
 DNSOverTLS=opportunistic
 EOF
   
-  # Ensure network interfaces don't override our DNS settings
-  for file in /etc/systemd/network/*.network; do
-    [[ -f "$file" ]] || continue
-    if ! grep -q "^\[DHCPv4\]" "$file"; then continue; fi
-    
-    # Add UseDNS=no to DHCPv4 section if not present
-    if ! sed -n '/^\[DHCPv4\]/,/^\[/p' "$file" | grep -q "^UseDNS="; then
-      sudo sed -i '/^\[DHCPv4\]/a UseDNS=no' "$file"
-    fi
-    
-    # Add UseDNS=no to IPv6AcceptRA section if present
-    if grep -q "^\[IPv6AcceptRA\]" "$file" && ! sed -n '/^\[IPv6AcceptRA\]/,/^\[/p' "$file" | grep -q "^UseDNS="; then
-      sudo sed -i '/^\[IPv6AcceptRA\]/a UseDNS=no' "$file"
-    fi
-  done
-  
-  sudo systemctl restart systemd-networkd systemd-resolved
+  # If using systemd-networkd, prevent interfaces from overriding DNS
+  if systemctl is-active --quiet systemd-networkd; then
+    for file in /etc/systemd/network/*.network; do
+      [[ -f "$file" ]] || continue
+      if ! grep -q "^\[DHCPv4\]" "$file"; then continue; fi
+      if ! sed -n '/^\[DHCPv4\]/,/^\[/p' "$file" | grep -q "^UseDNS="; then
+        sudo sed -i '/^\[DHCPv4\]/a UseDNS=no' "$file"
+      fi
+      if grep -q "^\[IPv6AcceptRA\]" "$file" && ! sed -n '/^\[IPv6AcceptRA\]/,/^\[/p' "$file" | grep -q "^UseDNS="; then
+        sudo sed -i '/^\[IPv6AcceptRA\]/a UseDNS=no' "$file"
+      fi
+    done
+  fi
+
+  # Restart only what’s active
+  systemctl is-active --quiet systemd-resolved && sudo systemctl restart systemd-resolved
+  systemctl is-active --quiet systemd-networkd && sudo systemctl restart systemd-networkd
   ;;
 
 DHCP)
@@ -40,13 +40,16 @@ DHCP)
 DNSOverTLS=no
 EOF
   
-  # Allow network interfaces to use DHCP DNS
-  for file in /etc/systemd/network/*.network; do
-    [[ -f "$file" ]] || continue
-    sudo sed -i '/^UseDNS=no/d' "$file"
-  done
-  
-  sudo systemctl restart systemd-networkd systemd-resolved
+  # Allow network interfaces to use DHCP DNS (only if using systemd-networkd)
+  if systemctl is-active --quiet systemd-networkd; then
+    for file in /etc/systemd/network/*.network; do
+      [[ -f "$file" ]] || continue
+      sudo sed -i '/^UseDNS=no/d' "$file"
+    done
+  fi
+
+  systemctl is-active --quiet systemd-resolved && sudo systemctl restart systemd-resolved
+  systemctl is-active --quiet systemd-networkd && sudo systemctl restart systemd-networkd
   ;;
 
 Custom)
@@ -64,24 +67,22 @@ DNS=$dns_servers
 FallbackDNS=9.9.9.9 149.112.112.112
 EOF
   
-  # Ensure network interfaces don't override our DNS settings
-  for file in /etc/systemd/network/*.network; do
-    [[ -f "$file" ]] || continue
-    if ! grep -q "^\[DHCPv4\]" "$file"; then continue; fi
-    
-    # Add UseDNS=no to DHCPv4 section if not present
-    if ! sed -n '/^\[DHCPv4\]/,/^\[/p' "$file" | grep -q "^UseDNS="; then
-      sudo sed -i '/^\[DHCPv4\]/a UseDNS=no' "$file"
-    fi
-    
-    # Add UseDNS=no to IPv6AcceptRA section if present
-    if grep -q "^\[IPv6AcceptRA\]" "$file" && ! sed -n '/^\[IPv6AcceptRA\]/,/^\[/p' "$file" | grep -q "^UseDNS="; then
-      sudo sed -i '/^\[IPv6AcceptRA\]/a UseDNS=no' "$file"
-    fi
-  done
-  
-  sudo systemctl restart systemd-networkd systemd-resolved
+  # If using systemd-networkd, prevent interfaces from overriding DNS
+  if systemctl is-active --quiet systemd-networkd; then
+    for file in /etc/systemd/network/*.network; do
+      [[ -f "$file" ]] || continue
+      if ! grep -q "^\[DHCPv4\]" "$file"; then continue; fi
+      if ! sed -n '/^\[DHCPv4\]/,/^\[/p' "$file" | grep -q "^UseDNS="; then
+        sudo sed -i '/^\[DHCPv4\]/a UseDNS=no' "$file"
+      fi
+      if grep -q "^\[IPv6AcceptRA\]" "$file" && ! sed -n '/^\[IPv6AcceptRA\]/,/^\[/p' "$file" | grep -q "^UseDNS="; then
+        sudo sed -i '/^\[IPv6AcceptRA\]/a UseDNS=no' "$file"
+      fi
+    done
+  fi
+
+  systemctl is-active --quiet systemd-resolved && sudo systemctl restart systemd-resolved
+  systemctl is-active --quiet systemd-networkd && sudo systemctl restart systemd-networkd
 
   ;;
 esac
-

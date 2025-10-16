@@ -37,7 +37,7 @@ menu() {
 }
 
 terminal() {
-  alacritty --class=Omarchy -e "$@"
+  ${TERMINAL:-alacritty} -e "$@"
 }
 
 present_terminal() {
@@ -188,7 +188,13 @@ show_setup_menu() {
     blueberry
     ;;
   *Power*) show_setup_power_menu ;;
-  *Monitors*) open_in_editor ~/.config/hypr/monitors.conf ;;
+  *Monitors*)
+    if command -v hyprmon &>/dev/null; then
+      setsid uwsm app -- hyprmon
+    else
+      open_in_editor ~/.config/hypr/monitors.conf
+    fi
+    ;;
   *Keybindings*) open_in_editor ~/.config/hypr/bindings.conf ;;
   *Input*) open_in_editor ~/.config/hypr/input.conf ;;
   *Defaults*) open_in_editor ~/.config/uwsm/default ;;

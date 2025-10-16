@@ -1,0 +1,9 @@
+# Packages to exclude from default installation
+# One package per line
+
+typora
+alacritty
+1password-beta
+1password-cli
+libreoffice
+signal-desktop
