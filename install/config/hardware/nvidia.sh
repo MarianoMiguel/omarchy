@@ -47,27 +47,43 @@ if [ -n "$(lspci | grep -i 'nvidia')" ]; then
   # force package database refresh
   sudo pacman -Syu --noconfirm
 
-  # Ask user which driver type to install
+  # Ask user which driver type to install with timed default
   echo
-  echo "NVIDIA GPU detected. Please select driver installation method:"
-  echo "1) DKMS drivers (automatically rebuild with kernel updates)"
-  echo "2) Pre-compiled drivers (faster install, manual updates needed)"
+  echo "NVIDIA GPU detected. Defaulting to pre-compiled drivers in 10s."
+  echo "Press any key to choose a different method (DKMS or pre-compiled)."
   echo
-  
-  if command -v gum >/dev/null; then
-    CHOICE=$(gum choose "DKMS drivers" "Pre-compiled drivers")
-    if [ "$CHOICE" = "DKMS drivers" ]; then
-      USE_DKMS=true
+
+  USE_DKMS=false
+  if [ -e /dev/tty ]; then
+    # Read a single key from the controlling TTY with a 10s timeout
+    if read -t 10 -n 1 -s -r < /dev/tty; then
+      echo
+      # Show selection UI
+      if command -v gum >/dev/null; then
+        CHOICE=$(gum choose "Pre-compiled drivers (default)" "DKMS drivers")
+        if [[ "$CHOICE" == DKMS* ]]; then
+          USE_DKMS=true
+        else
+          USE_DKMS=false
+        fi
+      else
+        echo "Select driver installation method:"
+        echo "1) Pre-compiled drivers (default)"
+        echo "2) DKMS drivers"
+        read -p "Enter choice (1 or 2): " DRIVER_CHOICE < /dev/tty
+        if [ "$DRIVER_CHOICE" = "2" ]; then
+          USE_DKMS=true
+        else
+          USE_DKMS=false
+        fi
+      fi
     else
+      echo "Proceeding with pre-compiled drivers by default..."
       USE_DKMS=false
     fi
   else
-    read -p "Enter choice (1 or 2): " DRIVER_CHOICE
-    if [ "$DRIVER_CHOICE" = "1" ]; then
-      USE_DKMS=true
-    else
-      USE_DKMS=false
-    fi
+    # No TTY available; proceed with default without waiting
+    USE_DKMS=false
   fi
 
   # Install based on user choice
