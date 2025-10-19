@@ -4,37 +4,61 @@
 # This script automates the installation and configuration of NVIDIA drivers
 # for use with Hyprland on Arch Linux, following the official Hyprland wiki.
 #
-# Author: https://github.com/Kn0ax
+# Behavior change: Always install proprietary precompiled NVIDIA drivers
+# when an NVIDIA GPU is detected (no DKMS). Uses `nvidia` for the default
+# kernel and `nvidia-lts`, `nvidia-zen`, or `nvidia-hardened` for variants
+# when available. Multilib is enabled automatically.
 #
+# Author: https://github.com/Kn0ax
 # ==============================================================================
 
 # --- GPU Detection ---
 if [ -n "$(lspci | grep -i 'nvidia')" ]; then
-  # --- Driver Selection ---
-  # Turing (16xx, 20xx), Ampere (30xx), Ada (40xx), and newer recommend the open-source kernel modules
-  if echo "$(lspci | grep -i 'nvidia')" | grep -q -E "RTX [2-9][0-9]|GTX 16"; then
-    NVIDIA_DRIVER_PACKAGE="nvidia-open-dkms"
-  else
-    NVIDIA_DRIVER_PACKAGE="nvidia-dkms"
-  fi
+  echo "NVIDIA GPU detected. Forcing precompiled driver installation."
 
-  # Check which kernel is installed and set appropriate headers package
-  KERNEL_HEADERS="linux-headers" # Default
+  # Decide kernel type for precompiled package suffixing
+  KERNEL_TYPE="linux" # default
   if pacman -Q linux-zen &>/dev/null; then
-    KERNEL_HEADERS="linux-zen-headers"
+    KERNEL_TYPE="linux-zen"
   elif pacman -Q linux-lts &>/dev/null; then
-    KERNEL_HEADERS="linux-lts-headers"
+    KERNEL_TYPE="linux-lts"
   elif pacman -Q linux-hardened &>/dev/null; then
-    KERNEL_HEADERS="linux-hardened-headers"
+    KERNEL_TYPE="linux-hardened"
   fi
 
-  # force package database refresh
+  # Always use proprietary precompiled package base
+  NVIDIA_PRECOMPILED_BASE="nvidia"
+
+  # Compose precompiled package name (e.g., nvidia, nvidia-lts, nvidia-zen)
+  NVIDIA_PRECOMPILED_PACKAGE="$NVIDIA_PRECOMPILED_BASE"
+  if [ "$KERNEL_TYPE" != "linux" ]; then
+    NVIDIA_PRECOMPILED_PACKAGE="${NVIDIA_PRECOMPILED_BASE}-${KERNEL_TYPE#linux-}"
+  fi
+
+  # Ensure multilib is enabled for lib32-nvidia-utils
+  if ! grep -q "^\[multilib\]" /etc/pacman.conf; then
+    sudo sed -i '/^#\s*\[multilib\]/,/^#\s*Include/ s/^#\s*//' /etc/pacman.conf
+  fi
+
+  # Refresh package databases and system before driver install
   sudo pacman -Syu --noconfirm
 
-  # Install packages
+  # If chosen package is not available for this kernel variant,
+  # fall back to base proprietary precompiled package.
+  if ! pacman -Si "$NVIDIA_PRECOMPILED_PACKAGE" &>/dev/null; then
+    FALLBACK_PACKAGE="nvidia"
+    if [ "$KERNEL_TYPE" != "linux" ]; then
+      FALLBACK_PACKAGE="nvidia-${KERNEL_TYPE#linux-}"
+    fi
+    echo "Selected package '$NVIDIA_PRECOMPILED_PACKAGE' not found. Falling back to '$FALLBACK_PACKAGE'."
+    NVIDIA_PRECOMPILED_PACKAGE="$FALLBACK_PACKAGE"
+  else
+    echo "Using precompiled driver package: $NVIDIA_PRECOMPILED_PACKAGE"
+  fi
+
+  # Install precompiled packages (no headers/DKMS required)
   PACKAGES_TO_INSTALL=(
-    "${KERNEL_HEADERS}"
-    "${NVIDIA_DRIVER_PACKAGE}"
+    "$NVIDIA_PRECOMPILED_PACKAGE"
     "nvidia-utils"
     "lib32-nvidia-utils"
     "egl-wayland"
